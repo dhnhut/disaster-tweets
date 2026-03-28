@@ -12,3 +12,4 @@ CrisisLexT6
 - West Texas Explosion
 
 CrisisLexT26
+- 2012 Colorado Wildfires
