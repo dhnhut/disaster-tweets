@@ -1,5 +1,6 @@
 # project-specific files
 ref/
+tokens/
 
 # compressed files
 *.7z
