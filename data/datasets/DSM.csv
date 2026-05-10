@@ -1,4 +1,4 @@
-"tweet_id","tweet_text","relevant","event_type","event_name","year","dataset","meta"
+"tweet_id","tweet_text","informative","event_type","event_name","year","dataset","meta"
 "9128355989445507485","Birmingham Wholesale Market is ablaze BBC News - Fire breaks out at Birmingham's Wholesale Market http://t.co/irWqCEZWEU","True","disaster","","","disasters_on_social_media",""
 "9854949519964969681","@sunkxssedharry will you wear shorts for race ablaze ?","False","disaster","","","disasters_on_social_media",""
 "9282341088111907415","@bbcmtd Wholesale Markets ablaze http://t.co/lHYXEOHY6C","True","disaster","","","disasters_on_social_media",""
