@@ -2,8 +2,7 @@ import random
 import numpy as np
 import torch
 
-
-RANDOM_SEED = 42
+from .config import RANDOM_SEED
 
 
 def setup_device_with_seeds(seed=RANDOM_SEED):
