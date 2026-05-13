@@ -2,6 +2,10 @@
 ref/
 tokens/
 
+data/disaster/*/
+data/extended/
+data/splited/
+
 # compressed files
 *.7z
 *.dmg
