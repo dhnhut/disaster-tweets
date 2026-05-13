@@ -2,7 +2,7 @@ import random
 import numpy as np
 import torch
 
-from .config import RANDOM_SEED
+RANDOM_SEED = 42
 
 
 def setup_device_with_seeds(seed=RANDOM_SEED):
