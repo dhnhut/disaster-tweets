@@ -69,7 +69,7 @@ def plot_fine_tune_history(train_loss_history, val_loss_history, val_acc_history
     else:
         epochs = range(1, len(train_loss_history) + 1)
 
-        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+        fig, axes = plt.subplots(2, 1, figsize=(12, 10))
 
         axes[0].plot(epochs, train_loss_history, marker="o", label="Train Loss")
         axes[0].plot(epochs, val_loss_history, marker="o", label="Val Loss")

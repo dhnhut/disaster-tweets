@@ -8,7 +8,13 @@ import torch
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer
 from datasets import Dataset
-from sklearn.metrics import classification_report, accuracy_score, f1_score
+from sklearn.metrics import (
+    classification_report,
+    accuracy_score,
+    f1_score,
+    recall_score,
+    precision_score,
+)
 
 from src import setup
 
@@ -116,6 +122,15 @@ def finetune(train_tokenized, val_tokenized, configs: dict):
     val_loss_history = []
     val_acc_history = []
 
+    print(f"Starting {model.__class__.__name__} fine-tuning...")
+    print(f"Using device: {device}")
+    print(f"Number of training samples: {len(train_tokenized)}")
+    print(f"Number of validation samples: {len(val_tokenized)}")
+    print(f"Batch size: {batch_size}")
+    print(f"Number of epochs: {num_epochs}")
+    print(f"Early stopping patience: {patience} epochs")
+    print("-" * 50)
+
     model.to(device)
     for epoch in range(num_epochs):
         # Training
@@ -221,8 +236,5 @@ def predict(model, test_tokenized, device):
 def report_metrics(test_tokenized, predictions, labels="labels"):
     y_true = np.array(test_tokenized[labels]).astype(int)
     y_pred = np.array(predictions).astype(int)
-
-    print(f"Test Accuracy: {accuracy_score(y_true, y_pred):.4f}")
-    print(f"Test F1 (macro): {f1_score(y_true, y_pred, average='macro'):.4f}")
     print("\nClassification report:")
     print(classification_report(y_true, y_pred, digits=4))
