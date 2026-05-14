@@ -4,7 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report
 
-# Fraction of the dataset to use for training and evaluation
+# #####Fraction of the dataset to use for training and evaluation
+# => rerun the 1_1_extended_datasets and 1_2_split_informative_datasets
 
 # # FULL
 # # ORIGINAL DATASET COUNTS:
@@ -15,12 +16,11 @@ from sklearn.metrics import classification_report
 
 # LOCAL
 # small fraction for quick testing
-DATA_FRACTION = 0.1
+DATA_FRACTION = 0.1  # => rerun the 1_0_disaster_datasets
 
 # # CLOUD
 # DATA_FRACTION = 1.0
-
-DATA_DISASTER_FRACTION = 0.25
+DATA_DISASTER_FRACTION = 0.25  # => rerun the 1_0_disaster_datasets
 DATA_WEATHER_FRACTION = 1.0
 DATA_OUT_TOPIC_FRACTION = 0.0031
 
