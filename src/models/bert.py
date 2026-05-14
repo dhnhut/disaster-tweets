@@ -8,13 +8,7 @@ import torch
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer
 from datasets import Dataset
-from sklearn.metrics import (
-    classification_report,
-    accuracy_score,
-    f1_score,
-    recall_score,
-    precision_score,
-)
+from sklearn.metrics import classification_report
 
 from src import setup
 
@@ -68,13 +62,20 @@ def format_dataset(dataset):
     return dataset
 
 
-def load_or_tokenize(ds_train, ds_val, ds_test, tokenizer, save_path: Path):
+def load_or_tokenize(
+    ds_train, ds_val, ds_test, tokenizer, save_path: Path, force_retokenize=False
+):
     Path(save_path).mkdir(parents=True, exist_ok=True)
     train_path = save_path / "train_tokenized"
     val_path = save_path / "val_tokenized"
     test_path = save_path / "test_tokenized"
 
-    if (train_path).exists() and (val_path).exists() and (test_path).exists():
+    if (
+        (train_path).exists()
+        and (val_path).exists()
+        and (test_path).exists()
+        and not force_retokenize
+    ):
         print("Loading tokenized datasets from disk...")
 
         train_tokenized = Dataset.load_from_disk(train_path)
@@ -234,7 +235,7 @@ def predict(model, test_tokenized, device):
 
 
 def report_metrics(test_tokenized, predictions, labels="labels"):
-    y_true = np.array(test_tokenized[labels]).astype(int)
-    y_pred = np.array(predictions).astype(int)
+    y_true = np.array(test_tokenized[labels])
+    y_pred = np.array(predictions)
     print("\nClassification report:")
     print(classification_report(y_true, y_pred, digits=4))

@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report
 
 # Fraction of the dataset to use for training and evaluation
 
@@ -13,14 +14,15 @@ import matplotlib.pyplot as plt
 # # Out Topic			          9,449,777   96.97%
 
 # LOCAL
+# small fraction for quick testing
 DATA_FRACTION = 0.1
 
 # # CLOUD
 # DATA_FRACTION = 1.0
 
-DATA_DISASTER_FRACTION = 0.30
-DATA_WEATHER_FRACTION = 0.25
-DATA_OUT_TOPIC_FRACTION = 0.015
+DATA_DISASTER_FRACTION = 0.25
+DATA_WEATHER_FRACTION = 1.0
+DATA_OUT_TOPIC_FRACTION = 0.0031
 
 
 def get_data_fraction():
@@ -91,3 +93,18 @@ def plot_fine_tune_history(train_loss_history, val_loss_history, val_acc_history
 
         plt.tight_layout()
         plt.show()
+
+
+def group_report_metrics(
+    df, predictions, labels="informative", group_by="disaster_type"
+):
+    df["prediction"] = predictions
+    for subset_name, subset_data in df.groupby(group_by):
+        print(f"{'='*50}")
+        print(f" Classification Report for Subset: {subset_name}")
+        print(f"{'-'*50}")
+
+        y_true_subset = subset_data[labels]
+        y_pred_subset = subset_data["prediction"]
+        report = classification_report(y_true_subset, y_pred_subset, digits=4)
+        print(report)
