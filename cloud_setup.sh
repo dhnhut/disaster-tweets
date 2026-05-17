@@ -22,7 +22,7 @@ conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 conda install -n base ipykernel --update-deps --force-reinstall -y
 
 conda config --add channels conda-forge
-pip install datasketch transformers torch tqdm datasets scikit-learn scikit-learn python-dotenv matplotlib peft trl bitsandbytes
+pip install datasketch transformers torch tqdm datasets scikit-learn scikit-learn python-dotenv matplotlib peft trl bitsandbytes evaluate
 
 git clone https://github.com/dhnhut/disaster-tweets
 cd disaster-tweets
