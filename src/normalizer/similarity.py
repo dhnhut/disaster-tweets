@@ -2,10 +2,13 @@ import os
 import numpy as np
 import json
 import re
+import faiss
 import pandas as pd
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+from sentence_transformers import SentenceTransformer
 
 from datasketch import MinHash, MinHashLSH
 
@@ -170,4 +173,116 @@ def filter_duplicates_minhash_lsh(
 
     df_filtered = df.drop(index=list(indices_to_drop)).reset_index(drop=True)
     print(f"Final dataset size after near-duplicate removal: {len(df_filtered)}")
+    return df_filtered
+
+
+def filter_duplicates_faiss(
+    df,
+    text_column="tweet_text",
+    chunk_size=50000,
+    similarity_threshold=0.75,
+    embedding_model="all-MiniLM-L6-v2",
+    train_sample_size=100000,
+    nprobe=10,
+    checkpoint_file="checkpoint.json",
+):
+    print(f"Original dataset size: {len(df)}")
+    num_rows = len(df)
+
+    # FASS works with Dense Vectors instead of sparse TF-IDF/BoW
+    print("Loading embedding model...")
+    model = SentenceTransformer(embedding_model)
+
+    # Encode in batches. model.encode is highly optimized.
+    print("Vectorizing text to dense representations...")
+    embeddings = model.encode(
+        df[text_column].tolist(),
+        batch_size=2048,
+        show_progress_bar=True,
+        normalize_embeddings=True,  # L2 Normalization for Cosine Similarity
+    )
+
+    # FAISS requires float32
+    embeddings = np.array(embeddings, dtype=np.float32)
+    dimension = embeddings.shape[1]
+
+    print("Building FAISS Index...")
+    # Number of Voronoi cells (clusters).
+    # A rule of thumb is 4 * sqrt(N) to 10 * sqrt(N)
+    nlist = int(4 * np.sqrt(num_rows))
+
+    # Exact inner product index for the quantizer
+    quantizer = faiss.IndexFlatIP(dimension)
+    index = faiss.IndexIVFFlat(quantizer, dimension, nlist, faiss.METRIC_INNER_PRODUCT)
+
+    # Train the index on a representative sample to define the clusters
+    train_sample_size = min(num_rows, train_sample_size)
+    print(f"Training index on {train_sample_size} samples...")
+    index.train(embeddings[:train_sample_size])
+
+    # Add all vectors to the index
+    index.add(embeddings)
+
+    # nprobe determines how many adjacent clusters to search.
+    # Higher = more accurate, slower.
+    index.nprobe = nprobe
+
+    # Checkpointing setup
+    indices_to_drop = set()
+    start_processing_row = 0
+
+    if os.path.exists(checkpoint_file):
+        with open(checkpoint_file, "r") as f:
+            state = json.load(f)
+            start_processing_row = state.get("last_processed_row", 0)
+            indices_to_drop = set(state.get("indices_to_drop", []))
+        print(
+            f"Resuming from row {start_processing_row}. Previously identified {len(indices_to_drop)} duplicates."
+        )
+    else:
+        print("Starting FAISS range search...")
+
+    # range_search with Inner Product returns matches where dot_product > threshold
+    for start_row in range(start_processing_row, num_rows, chunk_size):
+        end_row = min(start_row + chunk_size, num_rows)
+        query_vectors = embeddings[start_row:end_row]
+
+        # lims: array of start/end indices for the results of each query
+        # D: distances (similarities)
+        # I: indices of the matching vectors in the database
+        lims, D, I = index.range_search(query_vectors, similarity_threshold)
+
+        # Parse the 1D arrays returned by range_search
+        for i in range(len(query_vectors)):
+            actual_x = start_row + i
+
+            # Skip if we already decided to drop this item
+            if actual_x in indices_to_drop:
+                continue
+
+            # Get the slice of matches for this specific query vector
+            start_idx = lims[i]
+            end_idx = lims[i + 1]
+            matches = I[start_idx:end_idx]
+
+            for actual_y in matches:
+                # Only drop the subsequent occurrence to keep the first one
+                if actual_x < actual_y:
+                    indices_to_drop.add(int(actual_y))
+
+        # Save State to Checkpoint file
+        state = {
+            "last_processed_row": int(end_row),
+            "indices_to_drop": list(indices_to_drop),
+        }
+        temp_checkpoint = f"{checkpoint_file}.tmp"
+        with open(temp_checkpoint, "w") as f:
+            json.dump(state, f)
+        os.replace(temp_checkpoint, checkpoint_file)
+
+        print(
+            f"Processed up to row {end_row}/{num_rows}. Identified {len(indices_to_drop)} near-duplicates."
+        )
+
+    df_filtered = df.drop(index=list(indices_to_drop)).reset_index(drop=True)
     return df_filtered
