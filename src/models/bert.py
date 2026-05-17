@@ -1,52 +1,12 @@
-from pathlib import Path
-
-import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
 import torch
 from torch.utils.data import DataLoader
-from transformers import BertTokenizer
-from datasets import Dataset
 from sklearn.metrics import classification_report
-
-from src import setup
 
 # https://huggingface.co/google-bert/bert-base-uncased
 # bert-base-uncased - 110M
-
-
-def create_datasets(df_train, df_val, df_test):
-    # Convert to Hugging Face Datasets
-    train_ds = Dataset.from_pandas(df_train)
-    val_ds = Dataset.from_pandas(df_val)
-    test_ds = Dataset.from_pandas(df_test)
-
-    return train_ds, val_ds, test_ds
-
-
-def tokenize_function(tokenizer, examples):
-    return tokenizer(
-        examples["tweet_text"],
-        padding="max_length",
-        truncation=True,  # tweet_text is normally short
-        max_length=64,
-    )
-
-
-def max_length_dist(
-    df, field, tokenizer, frac: float = 0.1, random_state: int = setup.RANDOM_SEED
-):
-    ds = Dataset.from_pandas(df.sample(frac=frac, random_state=random_state))
-
-    token_lengths = [len(tokenizer.tokenize(str(text))) for text in ds[field]]
-
-    df_lengths = pd.DataFrame({"length": token_lengths})
-
-    print("90th percentile:", df_lengths["length"].quantile(0.90))
-    print("95th percentile:", df_lengths["length"].quantile(0.95))
-    print("99th percentile:", df_lengths["length"].quantile(0.99))
-    print("Absolute Maximum length:", df_lengths["length"].max())
 
 
 def format_dataset(dataset):
@@ -60,48 +20,6 @@ def format_dataset(dataset):
     # Set PyTorch tensor format for the required columns
     dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "labels"])
     return dataset
-
-
-def load_or_tokenize(
-    ds_train, ds_val, ds_test, tokenizer, save_path: Path, force_retokenize=False
-):
-    Path(save_path).mkdir(parents=True, exist_ok=True)
-    train_path = save_path / "train_tokenized"
-    val_path = save_path / "val_tokenized"
-    test_path = save_path / "test_tokenized"
-
-    if (
-        (train_path).exists()
-        and (val_path).exists()
-        and (test_path).exists()
-        and not force_retokenize
-    ):
-        print("Loading tokenized datasets from disk...")
-
-        train_tokenized = Dataset.load_from_disk(train_path)
-        val_tokenized = Dataset.load_from_disk(val_path)
-        test_tokenized = Dataset.load_from_disk(test_path)
-
-    else:
-        print("Tokenizing datasets...")
-        # Apply in batches for efficiency
-        train_tokenized = format_dataset(
-            ds_train.map(lambda x: tokenize_function(tokenizer, x), batched=True)
-        )
-        val_tokenized = format_dataset(
-            ds_val.map(lambda x: tokenize_function(tokenizer, x), batched=True)
-        )
-        test_tokenized = format_dataset(
-            ds_test.map(lambda x: tokenize_function(tokenizer, x), batched=True)
-        )
-
-        # Save individual datasets to a specified directory
-        print(f"Saving tokenized datasets to {save_path}...")
-        train_tokenized.save_to_disk(train_path)
-        val_tokenized.save_to_disk(val_path)
-        test_tokenized.save_to_disk(test_path)
-
-    return train_tokenized, val_tokenized, test_tokenized
 
 
 def finetune(train_tokenized, val_tokenized, configs: dict):
