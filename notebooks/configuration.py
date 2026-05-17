@@ -3,6 +3,8 @@ import sys
 import os
 
 ipython = get_ipython()
-ipython.magic("load_ext autoreload")
-ipython.magic("autoreload 2")
+# avoid  'ZMQInteractiveShell' object has no attribute 'magic'
+if ipython is not None and hasattr(ipython, "magic"):
+    ipython.magic("load_ext autoreload")
+    ipython.magic("autoreload 2")
 sys.path.append(os.path.abspath(os.path.join("..")))
