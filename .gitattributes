@@ -1,3 +1,5 @@
 data/extended/out_topic.csv filter=lfs diff=lfs merge=lfs -text
 data/extended/out_topic_deduplicated.csv filter=lfs diff=lfs merge=lfs -text
 data/extended/weather.csv filter=lfs diff=lfs merge=lfs -text
+data/extended/df_weather_embeddings.npz filter=lfs diff=lfs merge=lfs -text
+data/extended/df_out_topic_embeddings.npz filter=lfs diff=lfs merge=lfs -text
