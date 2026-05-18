@@ -5,6 +5,7 @@ import re
 import faiss
 import pandas as pd
 
+import torch
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -175,20 +176,63 @@ def filter_duplicates_minhash_lsh(
     print(f"Final dataset size after near-duplicate removal: {len(df_filtered)}")
     return df_filtered
 
+# def vectorize_faiss(
+#     df, text_column="tweet_text", model_name="all-MiniLM-L6-v2", batch_size=2048
+# ):
+#     print(f"Loading embedding model '{model_name}'...")
+#     model = SentenceTransformer(model_name)
+
+#     print("Vectorizing text to dense representations...")
+#     embeddings = model.encode(
+#         df[text_column].tolist(),
+#         batch_size=batch_size,
+#         show_progress_bar=True,
+#         normalize_embeddings=True,  # L2 Normalization for Cosine Similarity
+#     )
+#     return np.array(embeddings, dtype=np.float32)
+
 def vectorize_faiss(
-    df, text_column="tweet_text", model_name="all-MiniLM-L6-v2", batch_size=2048
+    df,
+    text_column="tweet_text",
+    model_name="all-MiniLM-L6-v2",
+    batch_size=2048,
+    chunk_size=200000,
+    device="auto",
 ):
-    print(f"Loading embedding model '{model_name}'...")
-    model = SentenceTransformer(model_name)
+    if device == "auto":
+        try:
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        except Exception:
+            device = "cpu"
+
+    print(f"Loading embedding model '{model_name}' on {device}...")
+    model = SentenceTransformer(model_name, device=device)
+
+    num_rows = len(df)
+    print(
+        f"Dataset has {num_rows} rows. Embedding dimension: {model.get_embedding_dimension()}"
+    )
+    dimension = model.get_embedding_dimension()
+    print(f"Pre-allocating embedding array of shape ({num_rows}, {dimension})...")
+    embeddings = np.empty((num_rows, dimension), dtype=np.float32)
 
     print("Vectorizing text to dense representations...")
-    embeddings = model.encode(
-        df[text_column].tolist(),
-        batch_size=batch_size,
-        show_progress_bar=True,
-        normalize_embeddings=True,  # L2 Normalization for Cosine Similarity
-    )
-    return np.array(embeddings, dtype=np.float32)
+    for start_row in range(0, num_rows, chunk_size):
+        print(
+            f"Processing rows {start_row} to {min(start_row + chunk_size, num_rows)} / {num_rows}"
+        )
+        end_row = min(start_row + chunk_size, num_rows)
+        texts = df[text_column].iloc[start_row:end_row].fillna("").astype(str).tolist()
+        chunk_embeddings = model.encode(
+            texts,
+            batch_size=batch_size,
+            show_progress_bar=True,
+            normalize_embeddings=True,  # L2 Normalization for Cosine Similarity
+        )
+        embeddings[start_row:end_row] = np.asarray(chunk_embeddings, dtype=np.float32)
+
+    return embeddings
 
 def train_faiss_index(
     embeddings,
