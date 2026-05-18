@@ -175,57 +175,69 @@ def filter_duplicates_minhash_lsh(
     print(f"Final dataset size after near-duplicate removal: {len(df_filtered)}")
     return df_filtered
 
-
-def filter_duplicates_faiss(
-    df,
-    text_column="tweet_text",
-    chunk_size=50000,
-    similarity_threshold=0.75,
-    embedding_model="all-MiniLM-L6-v2",
-    train_sample_size=100000,
-    nprobe=10,
-    checkpoint_file="checkpoint.json",
+def vectorize_faiss(
+    df, text_column="tweet_text", model_name="all-MiniLM-L6-v2", batch_size=2048
 ):
-    print(f"Original dataset size: {len(df)}")
-    num_rows = len(df)
+    print(f"Loading embedding model '{model_name}'...")
+    model = SentenceTransformer(model_name)
 
-    # FASS works with Dense Vectors instead of sparse TF-IDF/BoW
-    print("Loading embedding model...")
-    model = SentenceTransformer(embedding_model)
-
-    # Encode in batches. model.encode is highly optimized.
     print("Vectorizing text to dense representations...")
     embeddings = model.encode(
         df[text_column].tolist(),
-        batch_size=2048,
+        batch_size=batch_size,
         show_progress_bar=True,
         normalize_embeddings=True,  # L2 Normalization for Cosine Similarity
     )
+    return np.array(embeddings, dtype=np.float32)
 
-    # FAISS requires float32
-    embeddings = np.array(embeddings, dtype=np.float32)
+def train_faiss_index(
+    embeddings,
+    nlist=None,
+    train_sample_size=100000,
+    nprobe=10,
+    use_gpu=True,
+):
+    print(f"Building FAISS Index on CPU...")
+
+    num_rows = embeddings.shape[0]
     dimension = embeddings.shape[1]
+    nlist = int(4 * np.sqrt(num_rows)) if nlist is None else nlist
 
-    print("Building FAISS Index...")
-    # Number of Voronoi cells (clusters).
-    # A rule of thumb is 4 * sqrt(N) to 10 * sqrt(N)
-    nlist = int(4 * np.sqrt(num_rows))
-
-    # Exact inner product index for the quantizer
     quantizer = faiss.IndexFlatIP(dimension)
     index = faiss.IndexIVFFlat(quantizer, dimension, nlist, faiss.METRIC_INNER_PRODUCT)
 
-    # Train the index on a representative sample to define the clusters
+    gpu_index = None
+    if use_gpu and hasattr(faiss, "StandardGpuResources"):
+        print("Transferring index to GPU for training...")
+        res = faiss.StandardGpuResources()
+        gpu_index = faiss.index_cpu_to_gpu(res, 0, index)
+        train_index = gpu_index
+    else:
+        train_index = index
     train_sample_size = min(num_rows, train_sample_size)
     print(f"Training index on {train_sample_size} samples...")
-    index.train(embeddings[:train_sample_size])
+    train_index.train(embeddings[:train_sample_size])
+    train_index.add(embeddings)
+    train_index.nprobe = nprobe
+    return train_index, gpu_index
 
-    # Add all vectors to the index
-    index.add(embeddings)
 
-    # nprobe determines how many adjacent clusters to search.
-    # Higher = more accurate, slower.
-    index.nprobe = nprobe
+def faiss_range_search(
+    embeddings,
+    train_index,
+    gpu_index=None,
+    chunk_size=50000,
+    similarity_threshold=0.75,
+    checkpoint_file="checkpoint.json",
+):
+    num_rows = len(embeddings)
+
+    # range_search only runs on CPU
+    if gpu_index is not None:
+        print("Converting index back to CPU for range search...")
+        index = faiss.index_gpu_to_cpu(gpu_index)
+    else:
+        index = train_index
 
     # Checkpointing setup
     indices_to_drop = set()
@@ -240,13 +252,13 @@ def filter_duplicates_faiss(
             f"Resuming from row {start_processing_row}. Previously identified {len(indices_to_drop)} duplicates."
         )
     else:
-        print("Starting FAISS range search...")
+        print("Starting new FAISS radius search...")
 
-    # range_search with Inner Product returns matches where dot_product > threshold
     for start_row in range(start_processing_row, num_rows, chunk_size):
         end_row = min(start_row + chunk_size, num_rows)
         query_vectors = embeddings[start_row:end_row]
 
+        # range_search with Inner Product returns matches where dot_product > threshold
         # lims: array of start/end indices for the results of each query
         # D: distances (similarities)
         # I: indices of the matching vectors in the database
@@ -283,6 +295,128 @@ def filter_duplicates_faiss(
         print(
             f"Processed up to row {end_row}/{num_rows}. Identified {len(indices_to_drop)} near-duplicates."
         )
+
+    print("Remove checkpoint file upon successful completion.")
+    if os.path.exists(checkpoint_file):
+        os.remove(checkpoint_file)
+
+    return indices_to_drop
+
+
+def faiss_neighbors_search(
+    embeddings,
+    train_index,
+    gpu_index=None,
+    chunk_size=50000,
+    top_k=20,
+    similarity_threshold=0.75,
+    checkpoint_file="checkpoint.json",
+):
+    num_rows = len(embeddings)
+
+    # search can use GPU when available
+    index = gpu_index if gpu_index is not None else train_index
+
+    # Checkpointing setup
+    indices_to_drop = set()
+    start_processing_row = 0
+
+    if os.path.exists(checkpoint_file):
+        with open(checkpoint_file, "r") as f:
+            state = json.load(f)
+            start_processing_row = state.get("last_processed_row", 0)
+            indices_to_drop = set(state.get("indices_to_drop", []))
+        print(
+            f"Resuming from row {start_processing_row}. Previously identified {len(indices_to_drop)} duplicates."
+        )
+    else:
+        print("Starting new FAISS knearest search...")
+
+    for start_row in range(start_processing_row, num_rows, chunk_size):
+        end_row = min(start_row + chunk_size, num_rows)
+        query_vectors = embeddings[start_row:end_row]
+
+        # search returns top_k neighbors per query, then we filter by threshold
+        distances, matches = index.search(query_vectors, top_k)
+
+        for i in range(len(query_vectors)):
+            actual_x = start_row + i
+
+            if actual_x in indices_to_drop:
+                continue
+
+            for actual_y, score in zip(matches[i], distances[i]):
+                # -1 can appear when fewer than top_k neighbors are found
+                if actual_y < 0 or score < similarity_threshold:
+                    continue
+                if actual_x < actual_y:
+                    indices_to_drop.add(int(actual_y))
+
+        # Save State to Checkpoint file
+        state = {
+            "last_processed_row": int(end_row),
+            "indices_to_drop": list(indices_to_drop),
+        }
+        temp_checkpoint = f"{checkpoint_file}.tmp"
+        with open(temp_checkpoint, "w") as f:
+            json.dump(state, f)
+        os.replace(temp_checkpoint, checkpoint_file)
+
+        print(
+            f"Processed up to row {end_row}/{num_rows}. Identified {len(indices_to_drop)} near-duplicates."
+        )
+
+    print("Remove checkpoint file upon successful completion.")
+    if os.path.exists(checkpoint_file):
+        os.remove(checkpoint_file)
+
+    return indices_to_drop
+
+def filter_duplicates_faiss(
+    df,
+    text_column="tweet_text",
+    nlist=None,
+    chunk_size=50000,
+    embedding_model="all-MiniLM-L6-v2",
+    train_sample_size=100000,
+    nprobe=10,
+    search_type="radius",  # "radius" or "knearest"
+    top_k=20,
+    similarity_threshold=0.75,
+    checkpoint_file="checkpoint.json",
+):
+    print(f"Original dataset size: {len(df)}")
+
+    embeddings = vectorize_faiss(
+        df, text_column=text_column, model_name=embedding_model
+    )
+    train_index, gpu_index = train_faiss_index(
+        embeddings,
+        nlist=nlist,
+        train_sample_size=train_sample_size,
+        nprobe=nprobe,
+    )
+    if search_type == "radius":
+        indices_to_drop = faiss_range_search(
+            embeddings,
+            train_index,
+            gpu_index=gpu_index,
+            chunk_size=chunk_size,
+            similarity_threshold=similarity_threshold,
+            checkpoint_file=checkpoint_file,
+        )
+    elif search_type == "knearest":
+        indices_to_drop = faiss_neighbors_search(
+            embeddings,
+            train_index,
+            gpu_index=gpu_index,
+            chunk_size=chunk_size,
+            top_k=top_k,
+            similarity_threshold=similarity_threshold,
+            checkpoint_file=checkpoint_file,
+        )
+    else:
+        raise ValueError("search_type must be 'radius' or 'knearest'")
 
     df_filtered = df.drop(index=list(indices_to_drop)).reset_index(drop=True)
     return df_filtered
