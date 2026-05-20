@@ -176,6 +176,7 @@ def filter_duplicates_minhash_lsh(
     print(f"Final dataset size after near-duplicate removal: {len(df_filtered)}")
     return df_filtered
 
+
 # def vectorize_faiss(
 #     df, text_column="tweet_text", model_name="all-MiniLM-L6-v2", batch_size=2048
 # ):
@@ -190,6 +191,7 @@ def filter_duplicates_minhash_lsh(
 #         normalize_embeddings=True,  # L2 Normalization for Cosine Similarity
 #     )
 #     return np.array(embeddings, dtype=np.float32)
+
 
 def vectorize_faiss(
     df,
@@ -233,6 +235,7 @@ def vectorize_faiss(
         embeddings[start_row:end_row] = np.asarray(chunk_embeddings, dtype=np.float32)
 
     return embeddings
+
 
 def train_faiss_index(
     embeddings,
@@ -416,6 +419,7 @@ def faiss_neighbors_search(
 
     return indices_to_drop
 
+
 def filter_duplicates_faiss(
     df,
     text_column="tweet_text",
@@ -464,3 +468,32 @@ def filter_duplicates_faiss(
 
     df_filtered = df.drop(index=list(indices_to_drop)).reset_index(drop=True)
     return df_filtered
+
+
+def bruce_force_faiss_knn(texts, index, query_emb, k=2):
+
+    # D = Distances (L2), I = Indices
+    distances, indices = index.search(query_emb, k)
+
+    print(f"\n--- FAISS k-NN SEARCH (k={k}) ---")
+    for d, i in zip(distances[0], indices[0]):
+        # Convert L2 distance back to Cosine Similarity for easier human reading
+        cosine_sim = 1 - (d / 2)
+        print(f"[Similarity: {cosine_sim:.4f}] {texts[i]}")
+
+
+def bruce_force_faiss_radius(texts, index, query_emb, similarity_threshold=0.75):
+    # range_search returns (limits, distances, indices)
+    limits, distances, indices = index.range_search(
+        query_emb, similarity_threshold
+    )  # Adjust threshold as needed
+
+    print(f"\n--- FAISS RADIUS SEARCH ---")
+
+    if len(indices) == 0:
+        print("No results found within radius.")
+        return
+
+    for d, i in zip(distances, indices):
+        cosine_sim = 1 - (d / 2)
+        print(f"[Similarity: {cosine_sim:.4f}] {texts[i]}")
