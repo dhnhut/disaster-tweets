@@ -2,7 +2,9 @@
 ref/
 tokens/
 
-data/disaster/*/
+data/disaster/
+!data/disaster/humanitarian.csv
+!data/disaster/informative.csv
 data/extended
 data/splited
 
