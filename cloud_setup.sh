@@ -22,12 +22,16 @@ conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 conda install -n base ipykernel --update-deps --force-reinstall -y
 
 conda config --add channels conda-forge
-pip install datasketch transformers torch tqdm datasets scikit-learn scikit-learn python-dotenv matplotlib peft trl bitsandbytes evaluate sentence-transformers faiss-cpu faiss-gpu
+conda install datasketch transformers pytorch tqdm datasets scikit-learn python-dotenv matplotlib peft trl bitsandbytes evaluate sentence-transformers gdown -y
+
+# Only install one of them, depending on whether you have GPU support or not
+# conda install faiss-cpu -y
+conda install faiss-gpu -y
 
 git clone https://github.com/dhnhut/disaster-tweets
 cd disaster-tweets
 git lfs install
-git lfs pull
+# git lfs pull
 git config --global user.name "Nhut Hoang Duong"
 git config --global user.email dhnhut@gmail.com
 
@@ -39,3 +43,12 @@ git config --global user.email dhnhut@gmail.com
 # sudo swapon /swapfile
 # # # Check swap size
 # # grep SwapTotal /proc/meminfo
+
+# df_disaster_informative_knearest_0.75_100.csv
+# gdown https://drive.google.com/file/d/1H5d2b2h7ace3uCR3Fkohw-1Wyk5oaf7t/view?usp=drive_link -O ./data/disaster/
+
+# df_weather_radius_0.75.csv
+# gdown https://drive.google.com/file/d/1iXC8QT8xLqGl8uQ7Imgyydfe1cRIQyVp/view?usp=drive_link -O ./data/extended/
+
+# df_out_topic_knearest_0.6_top_100.csv
+# gdown https://drive.google.com/file/d/1m43_waNzeiCzA1WpjYvMujO0CFsDQ2Yu/view?usp=drive_link -O ./data/extended/

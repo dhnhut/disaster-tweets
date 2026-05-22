@@ -3,6 +3,8 @@ ref/
 tokens/
 
 data/disaster/
+!data/disaster/full.csv
+!data/disaster/full_all_attributes.csv
 !data/disaster/humanitarian.csv
 !data/disaster/informative.csv
 data/extended

@@ -15,9 +15,9 @@ import pandas as pd
 # LOCAL
 # small fraction for quick testing
 DATA_FRACTION = 0.1  # => rerun the 1_0_disaster_datasets
-
 # # CLOUD
 # DATA_FRACTION = 1.0
+
 DATA_DISASTER_FRACTION = 0.5  # => rerun the 1_0_disaster_datasets
 DATA_WEATHER_FRACTION = 1.0
 DATA_OUT_TOPIC_FRACTION = 0.0031
@@ -26,11 +26,11 @@ EXPERIMENT_RATIOS = [
     # weather, out-topic
     [0, 0],
     [0.5, 0],
-    [1, 0.64],
-    [1, 0.0109],
-    [1, 0.0199],
-    [1, 0.0425],
-    [1, 0.0876],
+    [1, 0.0196],
+    [1, 0.0334],
+    [1, 0.0610],
+    [1, 0.1301],
+    [1, 0.2682],
 ]
 
 INFORMATIVE_FILE = "df_disaster_informative_knearest_0.75_100.csv"
