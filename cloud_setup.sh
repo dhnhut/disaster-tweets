@@ -52,3 +52,5 @@ git config --global user.email dhnhut@gmail.com
 
 # df_out_topic_knearest_0.6_top_100.csv
 # gdown https://drive.google.com/file/d/1m43_waNzeiCzA1WpjYvMujO0CFsDQ2Yu/view?usp=drive_link -O ./data/extended/
+
+# gdown https://drive.google.com/drive/folders/1crBCYyaLQChzxqGL2yxcVmdfu58TK0os?usp=drive_link -O ./disaster-tweets/data/extended/ --folder

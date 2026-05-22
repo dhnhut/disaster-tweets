@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import numpy as np
 import json
 import re
@@ -431,6 +432,7 @@ def filter_duplicates_faiss(
     search_type="radius",  # "radius" or "knearest"
     top_k=20,
     similarity_threshold=0.75,
+    embeddings_file_path: Path = None,
     checkpoint_file="checkpoint.json",
 ):
     print(f"Original dataset size: {len(df)}")
@@ -438,6 +440,14 @@ def filter_duplicates_faiss(
     embeddings = vectorize_faiss(
         df, text_column=text_column, model_name=embedding_model
     )
+    if embeddings_file_path is not None:
+        embeddings_file_path.mkdir(parents=True, exist_ok=True)
+        np.savez(
+            embeddings_file_path,
+            embeddings=embeddings,
+            model_name=embedding_model,
+        )
+
     train_index, gpu_index = train_faiss_index(
         embeddings,
         nlist=nlist,
