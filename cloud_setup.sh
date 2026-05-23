@@ -22,7 +22,7 @@ conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 conda install -n base ipykernel --update-deps --force-reinstall -y
 
 conda config --add channels conda-forge
-conda install datasketch transformers pytorch tqdm datasets scikit-learn python-dotenv matplotlib peft trl bitsandbytes evaluate sentence-transformers gdown -y
+conda install datasketch transformers pytorch tqdm datasets scikit-learn python-dotenv matplotlib peft trl bitsandbytes evaluate sentence-transformers gdown ipywidgets -y
 
 # Only install one of them, depending on whether you have GPU support or not
 # conda install faiss-cpu -y

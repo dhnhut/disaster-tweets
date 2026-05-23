@@ -1,6 +1,8 @@
+import csv
 from pathlib import Path
 
 import pandas as pd
+from . import setup
 
 # #####Fraction of the dataset to use for training and evaluation
 # => rerun the 1_1_extended_datasets and 1_2_split_informative_datasets
@@ -24,18 +26,22 @@ DATA_OUT_TOPIC_FRACTION = 0.0031
 
 EXPERIMENT_RATIOS = [
     # weather, out-topic
-    [0, 0],
-    [0.5, 0],
-    [1, 0.0196],
-    [1, 0.0334],
-    [1, 0.0610],
-    [1, 0.1301],
-    [1, 0.2682],
+    [0, 0],  # no noise
+    [1, 0],  # weather noise only
+    [1, 0.085494],  # x2 noise
+    [1, 0.135494],  # x3 noise,
+    [1, 0.235494],  # x5 noise,
+    [1, 0.485494],  # x10 noise,
+    [1, 0.735494],  # x15 noise,
+    [1, 0.985494],  # x20 noise,
 ]
 
-INFORMATIVE_FILE = "df_disaster_informative_knearest_0.75_100.csv"
-WEATHER_FILE = "df_weather_radius_0.75.csv"
-OUT_TOPIC_FILE = "df_out_topic_knearest_0.6_top_100.csv"
+
+DISASTER_FILE = "disaster_knearest_0.75_100.csv"
+# DISASTER_FILE = "disaster_knearest_0.8_100.csv"
+# INFORMATIVE_FILE = "df_disaster_informative_knearest_0.75_100.csv"
+WEATHER_FILE = "weather_radius_0.75.csv"
+OUT_TOPIC_FILE = "out_topic_knearest_0.6_top_100.csv"
 
 
 def get_data_fraction():
@@ -108,3 +114,52 @@ def load_datasets(label="informative", weather_ratio=None, out_topic_ratio=None)
         )
     )
     return df_train, df_val, df_test
+
+
+def split_fraction(
+    df_disaster,
+    df_weather,
+    df_out_topic,
+    fraction=0.1,
+    out_topic_times=20,
+    random_state=setup.RANDOM_SEED,
+    file_path: Path = None,
+):
+    df = df_disaster.sample(frac=fraction, random_state=random_state)
+    df = pd.concat(
+        [df, df_weather.sample(frac=fraction, random_state=random_state)],
+        ignore_index=True,
+    )
+    n_out_topic = int(len(df[df["informative"] == True]) * out_topic_times)
+    df = pd.concat(
+        [df, df_out_topic.sample(n=n_out_topic, random_state=random_state)],
+        ignore_index=True,
+    )
+
+    print(f"Fraction set size: {len(df)}")
+    print(
+        f"Disaster informative samples: {df[df['subset'] == 'disaster'].groupby('informative').size()}"
+    )
+    print(
+        f"Humanitarian samples: {df[(df['subset'] == 'disaster') & (df['humanitarian_label'].notnull())].groupby(['informative']).size()}"
+    )
+    print(
+        f"Humanitarian sub-label samples: {df[df['subset'] == 'disaster'].groupby(['humanitarian_label', 'informative']).size()}"
+    )
+    print(f"Fraction set weather samples: {len(df[df['subset'] == 'weather'])}")
+    print(f"Fraction set out-topic samples: {len(df[df['subset'] == 'out_topic'])}")
+
+    display(df.head())
+
+    # Remove the samples from the original datasets
+    df_uids = set(df["uid"])
+    df_disaster = df_disaster[~df_disaster["uid"].isin(df_uids)]
+    df_weather = df_weather[~df_weather["uid"].isin(df_uids)]
+    df_out_topic = df_out_topic[~df_out_topic["uid"].isin(df_uids)]
+
+    df.to_csv(
+        file_path,
+        index=False,
+        quoting=csv.QUOTE_NONNUMERIC,
+    )
+    return df, df_disaster, df_weather, df_out_topic

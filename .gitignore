@@ -8,7 +8,7 @@ data/disaster/
 !data/disaster/humanitarian.csv
 !data/disaster/informative.csv
 data/extended
-data/splited
+data/splitted/
 
 # compressed files
 *.7z
