@@ -115,10 +115,11 @@ def load_datasets(label="informative", weather_ratio=None, out_topic_ratio=None)
     )
     return df_train, df_val, df_test
 
+
 def load_BERT_sets(weather_ratio=None, out_topic_ratio=None):
-    path = Path(f"../data/splitted/BERT/{get_experiment_ratios_path(
-        weather_ratio, out_topic_ratio
-    )}")
+    path = Path(
+        f"../data/splitted/BERT/{get_experiment_ratios_path(weather_ratio, out_topic_ratio)}"
+    )
     df_train = pd.read_csv(path / f"train.csv")
     df_val = pd.read_csv(path / f"validation.csv")
     df_test = pd.read_csv(path / f"test.csv")

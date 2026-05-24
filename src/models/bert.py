@@ -8,7 +8,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, WeightedRandomSampler
-from sklearn.metrics import classification_report, f1_score, recall_score, precision_score
+from sklearn.metrics import (
+    classification_report,
+    f1_score,
+    recall_score,
+    precision_score,
+)
 
 from sklearn.utils.class_weight import compute_class_weight
 
@@ -18,6 +23,7 @@ from .. import data_utils
 
 # https://huggingface.co/google-bert/bert-base-uncased
 # bert-base-uncased - 110M
+
 
 def model_path(weather_ratio=None, out_topic_ratio=None):
     return f"../models/BERT/{data_utils.get_experiment_ratios_path(weather_ratio, out_topic_ratio)}"
@@ -294,22 +300,31 @@ def finetune(train_tokenized, val_tokenized, configs: dict):
     )
 
 
-def predict(model, test_tokenized, device):
+def predict(model, test_tokenized, device, confidence_scores=False):
     test_loader = DataLoader(test_tokenized, batch_size=16)
     model.eval()
     all_preds = []
+    all_confidences = []
+    # all_probs = []
 
     with torch.no_grad():
-        for batch in tqdm(test_loader, desc="Predicting on Test Set"):
+        for batch in tqdm(test_loader, desc="Predicting:"):
             inputs = {
                 "input_ids": batch["input_ids"].to(device),
                 "attention_mask": batch["attention_mask"].to(device),
             }
             outputs = model(**inputs)
             logits = outputs.logits
-            preds = torch.argmax(logits, dim=-1)
+            probs = torch.softmax(logits, dim=-1)
+            confs, preds = torch.max(probs, dim=-1)
             all_preds.extend(preds.cpu().numpy())
+            if confidence_scores:
+                all_confidences.extend(confs.cpu().numpy())
+                # all_probs.extend(probs.cpu().numpy())
 
+    if confidence_scores:
+        # return all_preds, all_confidences, all_probs
+        return all_preds, all_confidences
     return all_preds
 
 

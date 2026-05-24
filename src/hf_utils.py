@@ -41,6 +41,20 @@ def max_length_dist(
     print("Absolute Maximum length:", df_lengths["length"].max())
 
 
+def tokenize(
+    ds,
+    tokenizer,
+    save_path: Path,
+    format_dataset=None,
+):
+    # Apply in batches for efficiency
+    tokenized = ds.map(lambda x: tokenize_function(tokenizer, x), batched=True)
+    if format_dataset is not None:
+        tokenized = format_dataset(tokenized)
+    tokenized.save_to_disk(save_path)
+    return tokenized
+
+
 def load_or_tokenize(
     ds_train,
     ds_val,
@@ -69,32 +83,42 @@ def load_or_tokenize(
 
     else:
         print("Tokenizing datasets...")
-        # Apply in batches for efficiency
-        train_tokenized = ds_train.map(
-            lambda x: tokenize_function(tokenizer, x), batched=True
-        )
-        val_tokenized = ds_val.map(
-            lambda x: tokenize_function(tokenizer, x), batched=True
-        )
-        test_tokenized = ds_test.map(
-            lambda x: tokenize_function(tokenizer, x), batched=True
-        )
+        # # Apply in batches for efficiency
+        # train_tokenized = ds_train.map(
+        #     lambda x: tokenize_function(tokenizer, x), batched=True
+        # )
+        # val_tokenized = ds_val.map(
+        #     lambda x: tokenize_function(tokenizer, x), batched=True
+        # )
+        # test_tokenized = ds_test.map(
+        #     lambda x: tokenize_function(tokenizer, x), batched=True
+        # )
 
-        if format_dataset is not None:
-            train_tokenized = format_dataset(train_tokenized)
-            val_tokenized = format_dataset(val_tokenized)
-            test_tokenized = format_dataset(test_tokenized)
+        # if format_dataset is not None:
+        #     train_tokenized = format_dataset(train_tokenized)
+        #     val_tokenized = format_dataset(val_tokenized)
+        #     test_tokenized = format_dataset(test_tokenized)
 
-        # Save individual datasets to a specified directory
-        print(f"Saving tokenized datasets to {save_path}...")
-        train_tokenized.save_to_disk(train_path)
-        val_tokenized.save_to_disk(val_path)
-        test_tokenized.save_to_disk(test_path)
+        # # Save individual datasets to a specified directory
+        # print(f"Saving tokenized datasets to {save_path}...")
+        # train_tokenized.save_to_disk(train_path)
+        # val_tokenized.save_to_disk(val_path)
+        # test_tokenized.save_to_disk(test_path)
+
+        train_tokenized = tokenize(ds_train, tokenizer, train_path, format_dataset)
+        val_tokenized = tokenize(ds_val, tokenizer, val_path, format_dataset)
+        test_tokenized = tokenize(ds_test, tokenizer, test_path, format_dataset)
 
     return train_tokenized, val_tokenized, test_tokenized
 
 
-def plot_fine_tune_history(train_loss_history, val_loss_history, val_f1_history, val_recall_history, val_precision_history):
+def plot_fine_tune_history(
+    train_loss_history,
+    val_loss_history,
+    val_f1_history,
+    val_recall_history,
+    val_precision_history,
+):
     if len(train_loss_history) == 0 or len(val_loss_history) == 0:
         print("No training history found. Run the fine-tuning cell first.")
         return
@@ -110,25 +134,29 @@ def plot_fine_tune_history(train_loss_history, val_loss_history, val_f1_history,
     axes[0].set_ylabel("Loss")
     axes[0].grid(True, alpha=0.3)
     axes[0].legend()
-    
+
     axes[1].plot(epochs, val_f1_history, marker="o", label="Val F1 Score")
     axes[1].plot(epochs, val_recall_history, marker="o", label="Val Recall")
     axes[1].plot(epochs, val_precision_history, marker="o", label="Val Precision")
     axes[1].set_title("Validation F1, Recall and Precision Curve")
     axes[1].set_xlabel("Epoch")
     axes[1].set_ylabel("Score")
-    
+
     # Dynamic Y-Axis Calculation
-    min_score = min(min(val_f1_history), min(val_recall_history), min(val_precision_history))
-    max_score = max(max(val_f1_history), max(val_recall_history), max(val_precision_history))
+    min_score = min(
+        min(val_f1_history), min(val_recall_history), min(val_precision_history)
+    )
+    max_score = max(
+        max(val_f1_history), max(val_recall_history), max(val_precision_history)
+    )
 
     # 5% padding to give the data points some breathing room
-    padding = 0.05 
+    padding = 0.05
     y_min = max(0.0, min_score - padding)
     y_max = min(1.0, max_score + padding)
-    
+
     axes[1].set_ylim(y_min, y_max)
-    
+
     axes[1].grid(True, alpha=0.3)
     axes[1].legend()
 
