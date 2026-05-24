@@ -24,16 +24,16 @@ DATA_DISASTER_FRACTION = 0.5  # => rerun the 1_0_disaster_datasets
 DATA_WEATHER_FRACTION = 1.0
 DATA_OUT_TOPIC_FRACTION = 0.0031
 
-EXPERIMENT_RATIOS = [
+BERT_EXPERIMENT_RATIOS = [
     # # weather, out-topic
     [0, 0],  # no noise
     [1, 0],  # weather noise only
-    [1, 0.085494],  # x2 noise
-    [1, 0.135494],  # x3 noise,
-    [1, 0.235494],  # x5 noise,
-    [1, 0.485494],  # x10 noise,
-    [1, 0.735494],  # x15 noise,
-    [1, 0.985494],  # x20 noise,
+    [1, 0.030448],  # x2 noise
+    [1, 0.084250],  # x3 noise,
+    [1, 0.191854],  # x5 noise,
+    [1, 0.460862],  # x10 noise,
+    [1, 0.729871],  # x15 noise,
+    [1, 0.998880],  # x20 noise,
 ]
 
 
