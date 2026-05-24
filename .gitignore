@@ -1,6 +1,7 @@
 # project-specific files
 ref/
 tokens/
+models/
 
 data/disaster/
 !data/disaster/full.csv

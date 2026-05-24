@@ -16,16 +16,16 @@ from . import setup
 
 # LOCAL
 # small fraction for quick testing
-DATA_FRACTION = 0.1  # => rerun the 1_0_disaster_datasets
+# DATA_FRACTION = 0.1  # => rerun the 1_0_disaster_datasets
 # # CLOUD
-# DATA_FRACTION = 1.0
+DATA_FRACTION = 1.0
 
 DATA_DISASTER_FRACTION = 0.5  # => rerun the 1_0_disaster_datasets
 DATA_WEATHER_FRACTION = 1.0
 DATA_OUT_TOPIC_FRACTION = 0.0031
 
 EXPERIMENT_RATIOS = [
-    # weather, out-topic
+    # # weather, out-topic
     [0, 0],  # no noise
     [1, 0],  # weather noise only
     [1, 0.085494],  # x2 noise
@@ -67,11 +67,11 @@ def get_experiment_ratios_path(weather_ratio, out_topic_ratio):
 def get_data_path(type: str = ""):
     path = Path(f"../data/{type}")
     if type == "disaster":
-        return path / f"../data/splited/{get_data_disaster_fraction()}"
+        return path / f"../data/splitted/{get_data_disaster_fraction()}"
     elif type == "weather":
-        return path / f"../data/splited/{get_data_weather_fraction()}"
+        return path / f"../data/splitted/{get_data_weather_fraction()}"
     elif type == "out_topic":
-        return path / f"../data/splited/{get_data_out_topic_fraction()}"
+        return path / f"../data/splitted/{get_data_out_topic_fraction()}"
     else:
         return path
 
@@ -82,7 +82,7 @@ def get_data_set(
     weather_ratio=None,
     out_topic_ratio=None,
 ):
-    path = get_data_path("splited") / get_experiment_ratios_path(
+    path = get_data_path("splitted") / get_experiment_ratios_path(
         weather_ratio, out_topic_ratio
     )
     return path / f"{label}_{set_name}.csv"
@@ -115,12 +115,21 @@ def load_datasets(label="informative", weather_ratio=None, out_topic_ratio=None)
     )
     return df_train, df_val, df_test
 
+def load_BERT_sets(weather_ratio=None, out_topic_ratio=None):
+    path = Path(f"../data/splitted/BERT/{get_experiment_ratios_path(
+        weather_ratio, out_topic_ratio
+    )}")
+    df_train = pd.read_csv(path / f"train.csv")
+    df_val = pd.read_csv(path / f"validation.csv")
+    df_test = pd.read_csv(path / f"test.csv")
+    return df_train, df_val, df_test
+
 
 def split_fraction(
     df_disaster,
     df_weather,
     df_out_topic,
-    fraction=0.1,
+    fraction=DATA_FRACTION,
     out_topic_times=20,
     random_state=setup.RANDOM_SEED,
     file_path: Path = None,

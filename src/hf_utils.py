@@ -94,34 +94,46 @@ def load_or_tokenize(
     return train_tokenized, val_tokenized, test_tokenized
 
 
-def plot_fine_tune_history(train_loss_history, val_loss_history, val_acc_history):
+def plot_fine_tune_history(train_loss_history, val_loss_history, val_f1_history, val_recall_history, val_precision_history):
     if len(train_loss_history) == 0 or len(val_loss_history) == 0:
         print("No training history found. Run the fine-tuning cell first.")
-    else:
-        epochs = range(1, len(train_loss_history) + 1)
+        return
 
-        fig, axes = plt.subplots(2, 1, figsize=(12, 10))
+    epochs = range(1, len(train_loss_history) + 1)
 
-        axes[0].plot(epochs, train_loss_history, marker="o", label="Train Loss")
-        axes[0].plot(epochs, val_loss_history, marker="o", label="Val Loss")
-        axes[0].set_title("Loss Curve")
-        axes[0].set_xlabel("Epoch")
-        axes[0].set_ylabel("Loss")
-        axes[0].grid(True, alpha=0.3)
-        axes[0].legend()
+    fig, axes = plt.subplots(2, 1, figsize=(12, 10))
 
-        axes[1].plot(
-            epochs, val_acc_history, marker="o", color="tab:green", label="Val Accuracy"
-        )
-        axes[1].set_title("Validation Accuracy Curve")
-        axes[1].set_xlabel("Epoch")
-        axes[1].set_ylabel("Accuracy")
-        axes[1].set_ylim(0, 1)
-        axes[1].grid(True, alpha=0.3)
-        axes[1].legend()
+    axes[0].plot(epochs, train_loss_history, marker="o", label="Train Loss")
+    axes[0].plot(epochs, val_loss_history, marker="o", label="Val Loss")
+    axes[0].set_title("Loss Curve")
+    axes[0].set_xlabel("Epoch")
+    axes[0].set_ylabel("Loss")
+    axes[0].grid(True, alpha=0.3)
+    axes[0].legend()
+    
+    axes[1].plot(epochs, val_f1_history, marker="o", label="Val F1 Score")
+    axes[1].plot(epochs, val_recall_history, marker="o", label="Val Recall")
+    axes[1].plot(epochs, val_precision_history, marker="o", label="Val Precision")
+    axes[1].set_title("Validation F1, Recall and Precision Curve")
+    axes[1].set_xlabel("Epoch")
+    axes[1].set_ylabel("Score")
+    
+    # Dynamic Y-Axis Calculation
+    min_score = min(min(val_f1_history), min(val_recall_history), min(val_precision_history))
+    max_score = max(max(val_f1_history), max(val_recall_history), max(val_precision_history))
 
-        plt.tight_layout()
-        plt.show()
+    # 5% padding to give the data points some breathing room
+    padding = 0.05 
+    y_min = max(0.0, min_score - padding)
+    y_max = min(1.0, max_score + padding)
+    
+    axes[1].set_ylim(y_min, y_max)
+    
+    axes[1].grid(True, alpha=0.3)
+    axes[1].legend()
+
+    plt.tight_layout()
+    plt.show()
 
 
 def group_report_metrics(
