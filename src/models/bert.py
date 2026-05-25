@@ -77,7 +77,7 @@ def detect_imbalance_strategy(train_labels):
         configs["class_weights"] = torch.tensor(weights, dtype=torch.float)
         return configs
 
-    elif 5.0 < ir <= 20.0:
+    elif 5.0 < ir <= 20:
         print("Status: High Imbalance. Using WeightedRandomSampler.")
         # Calculate sample weights as shown in previous responses
         class_weights_dict = {cls: 1.0 / count for cls, count in counts.items()}
@@ -139,6 +139,7 @@ def finetune(train_tokenized, val_tokenized, configs: dict):
     optimizer = configs["optimizer"]
     num_epochs = configs["num_epochs"]
     patience = configs["patience"]
+    save_path = configs["save_path"]
 
     # 1. Extract strategy configurations
     strategy = configs.get("strategy", "standard")
@@ -288,6 +289,9 @@ def finetune(train_tokenized, val_tokenized, configs: dict):
         model.load_state_dict(best_state_dict)
         model.to(device)
         print(f"Loaded best model with Val Recall: {best_val_recall:.4f}")
+    
+    if save_path is not None:
+        model.save_pretrained(save_path)
 
     # 5. Return the newly tracked recall history as well
     return (

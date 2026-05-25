@@ -26,12 +26,12 @@ DATA_OUT_TOPIC_FRACTION = 0.0031
 
 BERT_EXPERIMENT_RATIOS = [
     # # weather, out-topic
-    [0, 0],  # no noise
-    [1, 0],  # weather noise only
-    [1, 0.030448],  # x2 noise
-    [1, 0.084250],  # x3 noise,
-    [1, 0.191854],  # x5 noise,
-    [1, 0.460862],  # x10 noise,
+    # [0, 0],  # no noise
+    # [1, 0],  # weather noise only
+    # [1, 0.030448],  # x2 noise
+    # [1, 0.084250],  # x3 noise,
+    # [1, 0.191854],  # x5 noise,
+    # [1, 0.460862],  # x10 noise,
     [1, 0.729871],  # x15 noise,
     [1, 0.998880],  # x20 noise,
 ]
