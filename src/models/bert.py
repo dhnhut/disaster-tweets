@@ -140,7 +140,6 @@ def finetune(train_tokenized, val_tokenized, configs: dict):
     num_epochs = configs["num_epochs"]
     patience = configs["patience"]
     save_path = configs["save_path"]
-    tokenizer = configs["tokenizer"]
 
     # 1. Extract strategy configurations
     strategy = configs.get("strategy", "standard")
@@ -293,7 +292,6 @@ def finetune(train_tokenized, val_tokenized, configs: dict):
 
     if save_path is not None:
         model.save_pretrained(save_path)
-        tokenizer.save_pretrained(save_path)
 
     # 5. Return the newly tracked recall history as well
     return (
