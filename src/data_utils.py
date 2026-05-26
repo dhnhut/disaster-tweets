@@ -24,16 +24,29 @@ DATA_DISASTER_FRACTION = 0.5  # => rerun the 1_0_disaster_datasets
 DATA_WEATHER_FRACTION = 1.0
 DATA_OUT_TOPIC_FRACTION = 0.0031
 
-BERT_EXPERIMENT_RATIOS = [
+BERT_CROSSED_EXPERIMENT_N = [
     # # weather, out-topic
     # [0, 0],  # no noise
-    # [1, 0],  # weather noise only
-    # [1, 0.030448],  # x2 noise
-    # [1, 0.084250],  # x3 noise,
-    # [1, 0.191854],  # x5 noise,
-    # [1, 0.460862],  # x10 noise,
-    [1, 0.729871],  # x15 noise,
-    [1, 0.998880],  # x20 noise,
+    # [2578, 0],  # weather noise only
+    # [2578, 9704],  # x2 noise
+    # [2578, 18590],  # x3 noise,
+    # [2578, 36362],  # x5 noise,
+    # [2578, 80792],  # x10 noise,
+    [1, 125222],  # x15 noise,
+    [1, 169652],  # x20 noise,
+]
+
+
+BERT_ISO_EXPERIMENT_N = [
+    # # weather, out-topic
+    # [0, 0],  # no noise
+    # [12890, 0],  # weather noise only
+    # [12890, 16845],  # x2 noise
+    # [12890, 46609],  # x3 noise,
+    # [12890, 106137],  # x5 noise,
+    # [12890, 254957],  # x10 noise,
+    [12890, 403777],  # x15 noise,
+    [12890, 552597],  # x20 noise,
 ]
 
 
@@ -60,8 +73,8 @@ def get_data_out_topic_fraction():
     return DATA_OUT_TOPIC_FRACTION * DATA_FRACTION
 
 
-def get_experiment_ratios_path(weather_ratio, out_topic_ratio):
-    return Path(f"w{weather_ratio}_o{out_topic_ratio}") / str(get_data_fraction())
+def get_experiment_ratios_path(n_weather, n_out_topic):
+    return Path(f"w{n_weather}_o{n_out_topic}") / str(get_data_fraction())
 
 
 def get_data_path(type: str = ""):
@@ -79,46 +92,49 @@ def get_data_path(type: str = ""):
 def get_data_set(
     set_name,
     label="informative",
-    weather_ratio=None,
-    out_topic_ratio=None,
+    n_weather=None,
+    n_out_topic=None,
 ):
     path = get_data_path("splitted") / get_experiment_ratios_path(
-        weather_ratio, out_topic_ratio
+        n_weather, n_out_topic
     )
     return path / f"{label}_{set_name}.csv"
 
 
-def load_datasets(label="informative", weather_ratio=None, out_topic_ratio=None):
+def load_datasets(label="informative", n_weather=None, n_out_topic=None):
     df_train = pd.read_csv(
         get_data_set(
             "train",
             label=label,
-            weather_ratio=weather_ratio,
-            out_topic_ratio=out_topic_ratio,
+            n_weather=n_weather,
+            n_out_topic=n_out_topic,
         )
     )
     df_val = pd.read_csv(
         get_data_set(
             "validation",
             label=label,
-            weather_ratio=weather_ratio,
-            out_topic_ratio=out_topic_ratio,
+            n_weather=n_weather,
+            n_out_topic=n_out_topic,
         )
     )
     df_test = pd.read_csv(
         get_data_set(
             "test",
             label=label,
-            weather_ratio=weather_ratio,
-            out_topic_ratio=out_topic_ratio,
+            n_weather=n_weather,
+            n_out_topic=n_out_topic,
         )
     )
     return df_train, df_val, df_test
 
 
-def load_BERT_sets(weather_ratio=None, out_topic_ratio=None):
-    path = Path(
-        f"../data/splitted/BERT/{get_experiment_ratios_path(weather_ratio, out_topic_ratio)}"
+def load_BERT_sets(n_weather, n_out_topic, strategy="crossed"):
+    path = (
+        Path("../data/splitted/stage_1/")
+        / strategy
+        / "/BERT/"
+        / get_experiment_ratios_path(n_weather, n_out_topic)
     )
     df_train = pd.read_csv(path / f"train.csv")
     df_val = pd.read_csv(path / f"validation.csv")
