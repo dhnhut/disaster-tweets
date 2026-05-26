@@ -32,8 +32,8 @@ BERT_CROSSED_EXPERIMENT_N = [
     # [2578, 18590],  # x3 noise,
     # [2578, 36362],  # x5 noise,
     # [2578, 80792],  # x10 noise,
-    [1, 125222],  # x15 noise,
-    [1, 169652],  # x20 noise,
+    # [2578, 125222],  # x15 noise,
+    [2578, 169652],  # x20 noise,
 ]
 
 
@@ -45,7 +45,7 @@ BERT_ISO_EXPERIMENT_N = [
     # [12890, 46609],  # x3 noise,
     # [12890, 106137],  # x5 noise,
     # [12890, 254957],  # x10 noise,
-    [12890, 403777],  # x15 noise,
+    # [12890, 403777],  # x15 noise,
     [12890, 552597],  # x20 noise,
 ]
 
@@ -130,12 +130,8 @@ def load_datasets(label="informative", n_weather=None, n_out_topic=None):
 
 
 def load_BERT_sets(n_weather, n_out_topic, strategy="crossed"):
-    path = (
-        Path("../data/splitted/stage_1/")
-        / strategy
-        / "/BERT/"
-        / get_experiment_ratios_path(n_weather, n_out_topic)
-    )
+    path = Path(f"../data/splitted/stage_1/{strategy}/BERT/{get_experiment_ratios_path(n_weather, n_out_topic)}")
+
     df_train = pd.read_csv(path / f"train.csv")
     df_val = pd.read_csv(path / f"validation.csv")
     df_test = pd.read_csv(path / f"test.csv")

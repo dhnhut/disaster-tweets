@@ -77,7 +77,7 @@ def detect_imbalance_strategy(train_labels):
         configs["class_weights"] = torch.tensor(weights, dtype=torch.float)
         return configs
 
-    elif 5.0 < ir <= 20:
+    elif 5.0 < ir < 15:
         print("Status: High Imbalance. Using WeightedRandomSampler.")
         # Calculate sample weights as shown in previous responses
         class_weights_dict = {cls: 1.0 / count for cls, count in counts.items()}
