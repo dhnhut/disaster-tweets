@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -177,3 +178,10 @@ def group_report_metrics(
         y_pred_subset = subset_data["prediction"]
         report = classification_report(y_true_subset, y_pred_subset, digits=4)
         print(report)
+
+
+def report_metrics(test_tokenized, predictions, labels="labels"):
+    y_true = np.array(test_tokenized[labels])
+    y_pred = np.array(predictions)
+    print("\nClassification report:")
+    print(classification_report(y_true, y_pred, digits=4))
