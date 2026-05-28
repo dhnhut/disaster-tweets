@@ -69,10 +69,6 @@ def stage_2_llama_binary(df, model_name, model_path, tokenized_path, device):
     tokenized = hf_utils.tokenize(
         ds, tokenizer, tokenized_path, llama_bi.format_dataset
     )
-    # accuracy_metric = evaluate.load("accuracy")
-    # precision_metric = evaluate.load("precision")
-    # recall_metric = evaluate.load("recall")
-    # f1_metric = evaluate.load("f1")
 
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
     dataloader = DataLoader(tokenized, batch_size=8, collate_fn=data_collator)
@@ -93,18 +89,6 @@ def stage_2_llama_binary(df, model_name, model_path, tokenized_path, device):
     probs = torch.softmax(logits, dim=-1).numpy()
     predictions = np.argmax(probs, axis=-1)
     confidences = np.max(probs, axis=-1)
-    # test_acc = accuracy_metric.compute(
-    #     predictions=predictions, references=tokenized["labels"]
-    # )
-    # test_precision = precision_metric.compute(
-    #     predictions=predictions, references=tokenized["labels"]
-    # )
-    # test_recall = recall_metric.compute(
-    #     predictions=predictions, references=tokenized["labels"]
-    # )
-    # test_f1 = f1_metric.compute(
-    #     predictions=predictions, references=tokenized["labels"]
-    # )
 
     hf_utils.report_metrics(tokenized, predictions)
 
